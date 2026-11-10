@@ -8,6 +8,8 @@
   "rail_half": 81,
   "keepout": [[0, 0, 340, 15]],
   "keepout_why": "start nozzle load line at the front right (X 250-290, Y -0.5)",
+  "keepout_if": {"enable_wrapping_detection": [[172.3, 302, 232.5, 320]]},
+  "keepout_if_why": "clumping detection: Studio keeps objects out of wrapping_exclude_area (X 172.3-232.5, Y 302-322) when it is on, and its layer 3/10/19 G-code runs firmware G390 then Y295/Y265 with no lift; make3mf.py always avoids it, check.py fails only when the slice turns it on",
   "purge_corner": "front-right",
   "purge_corner_why": "cut/flush happen inside firmware (positions unknown); see hidden_change_moves",
   "margin": 5,

@@ -91,11 +91,37 @@ for k, b in boxes.items():
     if d < 2.0:
         startup_fail.append(f"start purge line {d:.1f} mm from the {k} footprint (need 2)")
 
+# object footprints against the machine's keep-out areas (some only apply when a slicer
+# setting is on, e.g. the H2S clumping-detection spot)
+def overlaps(b, k):
+    return b[0] < k[2] and k[0] < b[2] and b[1] < k[3] and k[1] < b[3]
+
+
+setting = {}
+for ln in L:
+    if ln.startswith("; ") and " = " in ln and len(ln) < 200:
+        key, _, val = ln[2:].partition(" = ")
+        setting[key.strip()] = val.strip()
+for k, b in boxes.items():
+    if k == "startup":
+        continue
+    for r in MACH.get("keepout", []):
+        if overlaps(b, r):
+            startup_fail.append(f"{k} footprint overlaps keep-out {r} ({MACH.get('keepout_why', '')})")
+    for flag, rects in MACH.get("keepout_if", {}).items():
+        for r in rects:
+            if overlaps(b, r):
+                if setting.get(flag, "0") not in ("0", "false", ""):
+                    startup_fail.append(f"{k} footprint overlaps keep-out {r}, live because {flag} is on")
+                else:
+                    print(f"[!]  {k} footprint overlaps keep-out {r}; harmless only while {flag} stays off")
+
 # pass 2: heights over time + clearance checks
 st = gc.State()
 h = {k: 0.0 for k in boxes}
 owner = "startup"
 fails, worst_head, worst_rail = list(startup_fail), {}, {}
+above = (0.0, 0)          # purge height over main height, worst, and its line
 t = 0.0
 timeline = []
 purge_layers, main_layers = [], []
@@ -143,6 +169,8 @@ for i, ln in enumerate(L):
                                  f"~{zt + ROD:.2f}, Y gap {dy:.1f} mm")
     if e > 0:
         h[owner] = max(h[owner], z1)
+        if "purge" in h and "main" in h and h["purge"] - h["main"] > above[0]:
+            above = (h["purge"] - h["main"], i + 1)
     if a.timeline and (not timeline or t - timeline[-1][0] > 0.25 or e > 0 and len(timeline) % 50 == 0):
         timeline.append((round(t, 2), round(z1, 2), round(h.get("main", 0), 2), round(h.get("purge", 0), 2)))
 
@@ -162,6 +190,11 @@ for k, (d, ln, z, hh) in worst_rail.items():
           f"(limit {RAIL_HALF}) at line {ln}, nozzle {z}, {k} {hh}")
 if not worst_rail:
     print(f"     rail: no object ever more than {ROD_SAFE:.0f} mm above the nozzle")
+if "purge" in h:
+    print(f"     purge object at most {above[0]:.2f} mm above the main print at any time"
+          + (f" (line {above[1]})" if above[1] else "")
+          + ("; never taller, so any firmware move safe for the main print alone clears it too"
+             if above[0] <= 0 else ""))
 print(f"     rough motion time {t:.0f} min (no acceleration; Studio's estimate is better)")
 if a.timeline:
     json.dump(timeline, open(a.timeline, "w"))

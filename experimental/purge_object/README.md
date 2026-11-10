@@ -179,6 +179,19 @@ it reads 255 during heating and leveling.
   so it runs only when the printer resumes after a power loss; check.py counts it anyway.
 - Better placement on the H2S: put the purge object behind AND to the side of the main print
   (no X overlap), so the back move, which runs at the nozzle's current X, never crosses it.
+- The firmware moves no G-code shows (cut, flush, trash can `G150.x`, pause, jam recovery) are
+  safe for the purge object whatever its position as long as it never stands taller than the
+  main print: any move the firmware makes safely over the main print alone then clears it too.
+  check.py prints how far the purge object ever gets above the main print; 0 is the strong
+  case. It happens on its own when the purge object is shorter than the main print and the
+  lead is small (two copies of a 49 mm print with two Benchies at 0.80: 0.00 mm; one copy with
+  full-size Benchies: 2.00 mm, still safe for every move check.py can see).
+- Clumping detection (`enable_wrapping_detection`, off by default in the slices here): at layers
+  3, 10 and 19 its G-code runs firmware `G390` and then Y295/Y265 without lifting, and Studio
+  keeps objects out of `wrapping_exclude_area` (X 172.3-232.5, Y 302-322) while it is on. The
+  profile's `keepout_if` puts that box off-limits: make3mf.py always avoids it, check.py fails
+  a footprint in it when the slice turns the setting on and warns otherwise. Back-center purge
+  objects sit right in it; back-right does not.
 - The start load line re-zeros Z with `G28.14` at Z 5, so the G-code model reads the line as
   5.8 mm tall; it is about 0.8 mm. check.py leaves the start line to the keep-out and the
   footprint check.

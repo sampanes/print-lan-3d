@@ -113,6 +113,7 @@ def hits(r, rects, gap=0.0):
 
 
 mg = M["margin"]
+KEEP = M["keepout"] + [r for rs in M.get("keepout_if", {}).values() for r in rs]
 if a.main_xy:
     cx, cy = (float(t) for t in a.main_xy.split(","))
 else:
@@ -125,7 +126,7 @@ else:
     right = M["purge_corner"].endswith("right")
     px = BX - mg - pw / 2 if right else mg + pw / 2
     py = mg + pd / 2
-    while hits((px - pw / 2, py - pd / 2, px + pw / 2, py + pd / 2), M["keepout"], mg) and py < BY:
+    while hits((px - pw / 2, py - pd / 2, px + pw / 2, py + pd / 2), KEEP, mg) and py < BY:
         py += 0.5
 purge_r = (px - pw / 2, py - pd / 2, px + pw / 2, py + pd / 2)
 
@@ -135,6 +136,9 @@ for name, r in (("main", main_r), ("purge", purge_r)):
     if hits(r, M["keepout"]):
         sys.exit(f"[X] {name} footprint {np.round(r, 1).tolist()} overlaps a keep-out "
                  f"({M['keepout_why']})")
+    if hits(r, KEEP):
+        sys.exit(f"[X] {name} footprint {np.round(r, 1).tolist()} overlaps a keep-out "
+                 f"({M.get('keepout_if_why', '')})")
 if hits(main_r, [purge_r], mg):
     sys.exit(f"[X] main ({mw:.0f}x{md:.0f} mm) and purge ({pw:.0f}x{pd:.0f} mm) do not fit apart "
              f"on the {BX}x{BY} bed; use a smaller purge object or --main-xy/--purge-xy")
