@@ -36,6 +36,11 @@ class IdentityError(ConnectionError):
 
 
 def creds():
+    """(serial, access code): from the environment (BAMBU_SERIAL, BAMBU_ACCESS_CODE) when both
+    are set, for a printer Bambu Studio does not know; otherwise from Bambu Studio's config."""
+    env = os.environ.get("BAMBU_SERIAL"), os.environ.get("BAMBU_ACCESS_CODE")
+    if all(env):
+        return env
     raw = open(STUDIO_CONF, encoding="utf-8").read().split("\n# MD5")[0]
     codes = json.loads(raw)["access_code"]
     if len(codes) != 1:
