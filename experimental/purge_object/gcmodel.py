@@ -130,3 +130,58 @@ def primed_ref(lines, layer1):
             if p.get("E", 0) > 0 and ("X" in p or "Y" in p):
                 return i
     raise SystemExit("[X] no extrusion after layer 1")
+
+
+_TOOL = re.compile(r"^M62([01]) S(\d+)A")
+
+
+def filament_changes(lines, layers=None):
+    """Filament changes after layer 1 (the start-of-print load is skipped).
+    Returns (pairs, changes): pairs[k] = (from filament, to filament), 0-based;
+    changes[k] = (main layer it happens in, line index right after its M621)."""
+    layers = layers or layer_index(lines)
+    l1 = layers[1]
+    pairs, changes, cur = [], [], None
+    for i, ln in enumerate(lines):
+        t = _TOOL.match(ln)
+        if not t or int(t[2]) >= 255:
+            continue
+        n = int(t[2])
+        if t[1] == "0":                          # M620: change starts
+            if i > l1:
+                pairs.append((cur, n))
+            cur = n
+        elif i > l1:                             # M621: change done
+            layer = max(k for k, v in layers.items() if v < i)
+            changes.append((layer, i + 1))
+    if len(pairs) != len(changes):
+        raise SystemExit(f"[X] {len(pairs)} M620 vs {len(changes)} M621 filament-change lines after layer 1")
+    return pairs, changes
+
+
+# Extrusion that grows with an object's outline (scale s -> s) vs with its area (s -> s^2).
+WALL_FEATURES = ("outer wall", "inner wall", "overhang wall", "gap infill")
+_FEATURE = re.compile(r"^;\s*(?:FEATURE:|TYPE:)\s*(.+)$")
+
+
+def layer_volumes(lines):
+    """{layer: (z, wall mm^3, area mm^3)}: filament extruded per layer, split by the slicer's
+    feature comments ('; FEATURE: Outer wall' in Bambu Studio / OrcaSlicer, ';TYPE:' in others)
+    into wall-like and area-like extrusion. Layers without feature comments count as area."""
+    zs = layer_z(lines)
+    out, layer, feat = {}, None, ""
+    for ln in lines:
+        if ln.startswith("; layer num/total_layer_count:"):
+            layer = int(ln.split(":")[1].split("/")[0])
+            out[layer] = [zs.get(layer), 0.0, 0.0]
+            continue
+        m = _FEATURE.match(ln)
+        if m:
+            feat = m[1].strip().lower()
+            continue
+        if layer is None or cmd(ln) not in ("G1", "G2", "G3"):
+            continue
+        p = params(ln)
+        if p.get("E", 0) > 0 and ("X" in p or "Y" in p):
+            out[layer][1 if feat in WALL_FEATURES else 2] += p["E"] * FIL_AREA
+    return {k: tuple(v) for k, v in out.items()}

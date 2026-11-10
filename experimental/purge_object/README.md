@@ -30,7 +30,8 @@ python run.py path\to\project.3mf path\to\purge.stl --name myjob
 - Output in `print-lan\jobs\purge_myjob\`: `myjob.gcode.3mf` plus every intermediate file.
   Nothing is sent to the printer.
 - Options: `--plan tight|max` (default tight), `--lead 25`, `--main-xy X,Y`,
-  `--purge-xy X,Y` (footprint centres, to override the automatic placement).
+  `--purge-xy X,Y` (footprint centres, to override the automatic placement),
+  `--purge-scale auto|A|A,B` (size the purge object to the job; see "Sizing the purge object").
 
 ## Pipeline (what run.py does)
 
@@ -45,6 +46,7 @@ python run.py path\to\project.3mf path\to\purge.stl --name myjob
 3. `splice.py MAIN.gcode PURGE.gcode OUT.gcode --plan tight --job job.json` - flush volume per
    change is looked up from the matrix (from filament -> to filament, read from the G-code's
    M620 lines); `--flush V1,V2` overrides.
+   It exits 3 when the purge object runs out before the last change (too small).
 4. `check.py OUT.gcode` - collision check with the machine's clearances; must print
    `[OK] no collisions found`.
 5. `when.py MAIN.gcode PURGE.gcode OUT.gcode.plan.json` - wall-clock of each purge visit.
@@ -55,6 +57,39 @@ python run.py path\to\project.3mf path\to\purge.stl --name myjob
    splice.
 
 `timeline.py chart.png a.timeline.json ...` draws height-over-time from `check.py --timeline`.
+
+## Sizing the purge object (`fit.py`, `--purge-scale`)
+
+The whole purge object is printed whatever the job flushes, so a fixed one is either too small
+(splice.py exits 3) or wasted filament. Scale ONE object to the job instead of printing extra
+copies: `run.py ... --purge-scale auto` slices it at scale 1, asks `fit.py` for the smallest
+scale that takes every flush, rebuilds and re-slices it, and if splice.py still finds it short,
+fits again on the real slice with 5 % more margin (up to 3 tries). `--purge-scale 1.2` or
+`1.3,1.0` (XY, Z) scales by hand.
+
+`python fit.py MAIN.gcode PURGE.gcode --job job.json --lead L [--at A,B]` on its own works with
+any slicer's output (Bambu Studio, OrcaSlicer); `--at` is the scale PURGE.gcode was sliced at.
+The last line it prints is the scale.
+
+- What must fit (tight plan): each change's flush, on top of all earlier ones, in purge layers
+  no higher than the main print + lead at that change; and the purge object's top no higher
+  than the main print's last-but-one layer + lead, so the catch-up visit can finish it.
+- Model: per layer, wall-like extrusion (outer, inner and overhang walls, gap infill, from the
+  slicer's `; FEATURE:` comments) grows with the XY scale a, everything else with a^2; heights
+  stretch with the Z scale b. Volume up to height h at (a, b) = b (a W(h/b) + a^2 A(h/b)).
+  Measured on an H2S job: within 1 % for a uniform 1.05, cautious (about 9 % low) when widening.
+  `--margin` (default 1.10) covers the error.
+- It prefers one uniform scale. A small lead (2 mm on the H2S) caps the height, so then it
+  widens more than it heightens (least filament, b <= a), but never squashes past
+  `--max-squash` (a <= 1.5 b): squashing flattens overhangs (tan of the overhang angle grows by
+  a/b), and a drooping overhang on the purge object is a collision risk.
+- Early changes are often the binding ones: with a small lead, a change at 5 mm must fit in the
+  purge object's first 7 mm, which favours a wide object.
+- Example (H2S, lead 2, 18 changes, 8460 mm3 of flush, main print 49 mm tall): one Benchy at
+  scale 1 runs out at change 17; `fit.py` picks 1.05 uniform (50.4 mm tall), which spliced and
+  checked clean, estimated 116 min against 140 for two Benchies (2x the need; not printed).
+- make3mf.py reads Bambu Studio projects; projects saved by OrcaSlicer fail in it at any scale
+  (object settings differ), so with Orca build the purge project yourself and use fit.py.
 
 ## Machine profiles (`machines/*.json`)
 

@@ -3,6 +3,8 @@
 Drives a Bambu printer (built on a P1S Combo with one AMS) over the LAN: status, chamber
 camera, slicing with the Bambu Studio CLI, sending a job, pause/resume/stop. Read README.md
 first; `experimental/purge_object/README.md` covers the purge-object prints.
+Purge objects are sized to the job: scale ONE object (`run.py --purge-scale auto`,
+or `fit.py` with any slicer) rather than adding copies.
 
 ## What works
 - status, cam, slice (+ preview card to Downloads), verified FTPS upload, watch, checkpoint.

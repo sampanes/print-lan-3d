@@ -9,8 +9,9 @@ changes). Writes into OUTDIR:
   job.json   - machine, flush volumes Studio wanted (for splice.py), where things went
 
 Usage: python make3mf.py SRC.3mf PURGE.stl OUTDIR [--machine p1s] [--main-xy X,Y]
-       [--purge-xy X,Y]
+       [--purge-xy X,Y] [--purge-scale A[,B]]
 --main-xy / --purge-xy put that object's footprint centre at X,Y instead of the automatic spot.
+--purge-scale scales the purge mesh by A in X and Y and by B (default A) in Z; fit.py picks it.
 """
 import argparse, json, os, re, sys, zipfile
 import numpy as np
@@ -24,7 +25,11 @@ ap.add_argument("outdir")
 ap.add_argument("--machine", help="machines/<name>.json (default: from the project's printer)")
 ap.add_argument("--main-xy")
 ap.add_argument("--purge-xy")
+ap.add_argument("--purge-scale", default="1", help="A or A,B: XY and Z scale of the purge mesh")
 a = ap.parse_args()
+SCALE = [float(v) for v in (a.purge_scale.split(",") * 2)[:2]]
+if not all(0.1 <= v <= 10 for v in SCALE):
+    sys.exit(f"[X] --purge-scale {a.purge_scale}: out of range")
 os.makedirs(a.outdir, exist_ok=True)
 
 zin = zipfile.ZipFile(a.src)
@@ -96,6 +101,7 @@ mw, md = mhi[0] - mlo[0], mhi[1] - mlo[1]
 
 pm = trimesh.load(a.purge_stl, force="mesh")
 pm.merge_vertices()
+pm.apply_scale([SCALE[0], SCALE[0], SCALE[1]])
 pm.apply_translation(-(pm.bounds[0] + pm.bounds[1]) / 2)
 pw, pd, ph = pm.extents
 
@@ -234,10 +240,10 @@ job = dict(machine=mid, source=os.path.basename(a.src), purge=pname,
            flush_matrix=[[fm[i * n + j] * mult for j in range(n)] for i in range(n)],
            filament_colour=proj.get("filament_colour"),
            main_rect=[round(v, 2) for v in main_r], purge_rect=[round(v, 2) for v in purge_r],
-           purge_height=round(float(ph), 2))
+           purge_height=round(float(ph), 2), purge_scale=SCALE)
 json.dump(job, open(os.path.join(a.outdir, "job.json"), "w"), indent=1)
 print(f"[OK] machine {mid} ({M['status']})")
 print(f"[OK] main  {mw:.1f} x {md:.1f} mm -> X {main_r[0]:.1f}-{main_r[2]:.1f}, "
       f"Y {main_r[1]:.1f}-{main_r[3]:.1f}")
-print(f"[OK] purge {pw:.1f} x {pd:.1f} x {ph:.1f} mm, {len(pm.faces)} faces, watertight "
+print(f"[OK] purge {pw:.1f} x {pd:.1f} x {ph:.1f} mm (scale {SCALE[0]:g},{SCALE[1]:g}), {len(pm.faces)} faces, watertight "
       f"{pm.is_watertight} -> X {purge_r[0]:.1f}-{purge_r[2]:.1f}, Y {purge_r[1]:.1f}-{purge_r[3]:.1f}")

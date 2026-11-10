@@ -55,22 +55,8 @@ M_END = gc.end_index(M)
 NP = max(pli)
 
 # filament changes in the main print (skip the start-of-print load, before layer 1)
+pairs, changes = gc.filament_changes(M, mli)
 TOOL = re.compile(r"^M62([01]) S(\d+)A")
-changes, pairs, cur = [], [], None
-for i, l in enumerate(M):
-    t = TOOL.match(l)
-    if not t or int(t[2]) >= 255:
-        continue
-    n = int(t[2])
-    if t[1] == "0":                              # M620: change starts
-        if i > mli[1]:
-            pairs.append((cur, n))
-        cur = n
-    elif i > mli[1]:                             # M621: change done, anchor right after it
-        layer = max(k for k, v in mli.items() if v < i)
-        changes.append((layer, i + 1))
-if len(pairs) != len(changes):
-    sys.exit(f"[X] {len(pairs)} M620 vs {len(changes)} M621 filament-change lines after layer 1")
 if a.flush:
     flush = [float(v) for v in a.flush.split(",")]
 elif job.get("flush_matrix"):
@@ -116,6 +102,12 @@ else:
         l1 = nxt
         while vol(nxt, l1) < flush[k] and l1 < NP:
             l1 += 1
+        if nxt > NP or vol(nxt, l1) < flush[k]:
+            left = vol(nxt, NP) if nxt <= NP else 0.0
+            need = sum(flush[k:])
+            print(f"[X] change {k+1}: the purge object is used up; changes {k+1}-{len(changes)} need "
+                  f"{need:.0f} mm3, {left:.0f} mm3 left. Scale it up (fit.py, run.py --purge-scale auto).")
+            sys.exit(3)
         if pz[l1] > cap:
             sys.exit(f"[X] change {k+1}: flush needs purge up to {pz[l1]} mm, over the {a.lead} mm lead")
         if k + 1 == len(changes):                # last change: go as high as the lead allows
