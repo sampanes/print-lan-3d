@@ -353,8 +353,9 @@ class _FTPS(ftplib.FTP_TLS):
         return conn, size
 
     def storbinary(self, cmd, fp, blocksize=65536, callback=None, rest=None):
-        # the printer never answers a TLS close_notify on the data connection, so close it
-        # without the unwrap() ftplib does (which waits until the timeout)
+        # The P1S never answers a TLS close_notify on the data connection (ftplib's unwrap()
+        # would wait for the full timeout); the H2S needs one, or it replies 426 although every
+        # byte arrived. So send it and wait briefly for the answer.
         self.voidcmd("TYPE I")
         conn = self.transfercmd(cmd, rest)
         try:
@@ -365,6 +366,11 @@ class _FTPS(ftplib.FTP_TLS):
                 conn.sendall(buf)
                 if callback:
                     callback(buf)
+            try:
+                conn.settimeout(3)
+                conn.unwrap()
+            except (OSError, ValueError):
+                pass
         finally:
             conn.close()
         return self.voidresp()
