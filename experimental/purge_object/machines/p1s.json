@@ -1,0 +1,15 @@
+{
+  "name": "Bambu Lab P1S",
+  "status": "tested: one TIGHT print, no collisions",
+  "bed": [256, 256],
+  "z_max": 250,
+  "head_radius": 68,
+  "rod_height": 34,
+  "rail_half": 68,
+  "keepout": [[0, 0, 256, 15], [0, 0, 18, 28]],
+  "keepout_why": "start purge line along the front edge (X 18-240, Y 1) with a hook to Y 11; bed_exclude_area front-left",
+  "purge_corner": "front-right",
+  "purge_corner_why": "the filament change cuts at the front-LEFT (X 20 Y 50) and flushes at the back chute",
+  "margin": 5,
+  "hidden_change_moves": false
+}

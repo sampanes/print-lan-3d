@@ -1,0 +1,16 @@
+{
+  "name": "Bambu Lab H2S",
+  "status": "UNTESTED: values from Bambu Studio's H2S 0.4 profiles, never printed",
+  "bed": [340, 320],
+  "z_max": 330,
+  "head_radius": 81,
+  "rod_height": 33,
+  "rail_half": 81,
+  "keepout": [[0, 0, 340, 15]],
+  "keepout_why": "start nozzle load line at the front right (X 250-290, Y -0.5)",
+  "purge_corner": "front-right",
+  "purge_corner_why": "cut/flush happen inside firmware (positions unknown); see hidden_change_moves",
+  "margin": 5,
+  "hidden_change_moves": true,
+  "hidden_change_moves_why": "M620.10/T/SYNC do the cut and flush in firmware, so check.py cannot see those moves; splice.py raises every Z inside change blocks and the end G-code to the tallest object + 3"
+}

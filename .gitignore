@@ -1,0 +1,6 @@
+# local-only: printer address and sliced job output
+*.local.json
+jobs/
+__pycache__/
+*.pyc
+.venv/
