@@ -4,3 +4,6 @@ jobs/
 __pycache__/
 *.pyc
 .venv/
+
+# site-specific scripts and one-off jobs, never committed
+local/
