@@ -9,8 +9,9 @@ objects.
 Status:
 - P1S: works. One TIGHT print (two colour changes, Benchy as the purge object): no
   collisions, both objects finished, the main part dimensionally fine.
-- H2S: machine profile written from Bambu Studio's H2S profiles, never printed. See
-  "H2S notes".
+- H2S: works. One TIGHT print sliced with OrcaSlicer (18 colour changes, two Benchies as the
+  purge object, --lead 2): no collisions, both objects finished, colours clean on the main part.
+  See "H2S notes".
 
 Not zero waste: with flush 0 the P1S still pushes about 2 mm of filament into the chute per
 change, and the cutter still cuts. Everything else goes into the purge object.
