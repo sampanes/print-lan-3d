@@ -1,6 +1,6 @@
 {
   "name": "Bambu Lab H2S",
-  "status": "UNTESTED: values from Bambu Studio's H2S 0.4 profiles, never printed",
+  "status": "TESTED: one tight purge-object print (OrcaSlicer slices, --lead 2); values from Bambu Studio's H2S 0.4 profiles",
   "bed": [340, 320],
   "z_max": 330,
   "head_radius": 81,

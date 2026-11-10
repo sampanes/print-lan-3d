@@ -78,17 +78,25 @@ The last line it prints is the scale.
 - Model: per layer, wall-like extrusion (outer, inner and overhang walls, gap infill, from the
   slicer's `; FEATURE:` comments) grows with the XY scale a, everything else with a^2; heights
   stretch with the Z scale b. Volume up to height h at (a, b) = b (a W(h/b) + a^2 A(h/b)).
-  Measured on an H2S job: within 1 % for a uniform 1.05, cautious (about 9 % low) when widening.
-  `--margin` (default 1.10) covers the error.
+  Measured on an H2S job: within 1 % for a uniform 1.05, cautious (about 9 % low) when widening,
+  optimistic (about 4 % high) when shrinking to 0.77, because walls and top shells do not shrink
+  with the object. `--margin` (default 1.10) covers most of it; when splice.py still finds the
+  object short, refit on the real slice (`--at`) with `--margin 1.15`, as run.py's retry does.
 - It prefers one uniform scale. A small lead (2 mm on the H2S) caps the height, so then it
   widens more than it heightens (least filament, b <= a), but never squashes past
   `--max-squash` (a <= 1.5 b): squashing flattens overhangs (tan of the overhang angle grows by
   a/b), and a drooping overhang on the purge object is a collision risk.
+- More copies of the main print do not need more purge: the flush is per filament change, and
+  copies share their changes (two copies of an 18-change print still flush 18 times). Extra
+  copies only add main-print time, so the same purge object usually fits (or can shrink).
 - Early changes are often the binding ones: with a small lead, a change at 5 mm must fit in the
   purge object's first 7 mm, which favours a wide object.
 - Example (H2S, lead 2, 18 changes, 8460 mm3 of flush, main print 49 mm tall): one Benchy at
   scale 1 runs out at change 17; `fit.py` picks 1.05 uniform (50.4 mm tall), which spliced and
   checked clean, estimated 116 min against 140 for two Benchies (2x the need; not printed).
+  Two copies of the same main print, two Benchies as the purge object: `fit.py` predicted 0.77,
+  the 0.77 slice came up 17 mm3 short at the last change (splice.py exit 3), 0.80 spliced and
+  checked clean.
 - make3mf.py reads Bambu Studio projects; projects saved by OrcaSlicer fail in it at any scale
   (object settings differ), so with Orca build the purge project yourself and use fit.py.
 
@@ -148,7 +156,7 @@ it reads 255 during heating and leveling.
 - Fresh plastic edges glow orange in the chamber LED light: do not judge colour from a camera
   photo of the first few layers.
 
-## H2S notes (from Studio's H2S 0.4 profiles; nothing printed on an H2S yet)
+## H2S notes (from Studio's H2S 0.4 profiles and one print)
 
 - Bed 340x320, height 340. extruder_clearance_max_radius 81 (P1S 68), height_to_rod 33.
 - Start nozzle load line at the front RIGHT: X 250-290, Y -0.5.
