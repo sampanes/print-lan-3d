@@ -5,6 +5,8 @@ camera, slicing with the Bambu Studio CLI, sending a job, pause/resume/stop. Rea
 first; `experimental/purge_object/README.md` covers the purge-object prints.
 Purge objects are sized to the job: scale ONE object (`run.py --purge-scale auto`,
 or `fit.py` with any slicer) rather than adding copies.
+First run `swaps.py` on a by-layer slice: a color printed only in a thin band is usually
+cheaper as a separate part printed by object (purge README, "Fewer swaps first").
 
 ## What works
 - status, cam, slice (+ preview card to Downloads), verified FTPS upload, watch, checkpoint.

@@ -30,6 +30,8 @@ python run.py path\to\project.3mf path\to\purge.stl --name myjob
   if not in Program Files).
 - Output in `print-lan\jobs\purge_myjob\`: `myjob.gcode.3mf` plus every intermediate file.
   Nothing is sent to the printer.
+- Before anything else: `swaps.py` on a by-layer slice ("Fewer swaps first"); a separate part
+  printed by object may need no purge object at all.
 - Options: `--plan tight|max` (default tight), `--lead 25`, `--main-xy X,Y`,
   `--purge-xy X,Y` (footprint centres, to override the automatic placement),
   `--purge-scale auto|A|A,B` (size the purge object to the job; see "Sizing the purge object").
@@ -58,6 +60,47 @@ python run.py path\to\project.3mf path\to\purge.stl --name myjob
    splice.
 
 `timeline.py chart.png a.timeline.json ...` draws height-over-time from `check.py --timeline`.
+
+## Fewer swaps first (`swaps.py`, print by object)
+
+Every filament change costs its flush, down the chute or into a purge object, so the cheapest
+purge is a swap that never happens. The slicer swaps on every layer that holds more than one
+color: a color printed only in a thin band high up (a trim strip, a cap) costs one or two
+swaps per layer of that band, for a few grams of plastic.
+
+`python swaps.py SLICED.gcode --job job.json [--names a,b,c,d]` (a by-layer slice) lists every
+swap with its flush, groups them into height bands, and names each filament printed only inside
+one band. Example (H2S, OrcaSlicer, two copies of a black desk stand with a red logo inlay at
+4.6-5.0 mm and a 3 mm white trim band at 35.8-38.4 mm): 18 swaps, 8460 mm3; the white band alone
+14 swaps and 6930 mm3 (82 %) for 567 mm3 of white plastic.
+
+The fix is to make that color a separate part and print the plate by object
+(`print_sequence = by object`): the slicer finishes each object before starting the next, so
+colors stop sharing layers. Swaps drop to one per object boundary plus whatever stays inside an
+object.
+- Measured (same plate, OrcaSlicer 2.5, H2S; the white bars as their own object, both stands
+  with their logo inlays as ONE object): 5 swaps, 1620 mm3 to the chute, no purge object, 2 h 01
+  min (estimates), against 18 swaps and 2 h 51 min for the purge-object version (8460 mm3 into two Benchies).
+  The white filament loads once instead of seven times.
+- Objects must stand at least the toolhead clearance radius apart (`extruder_clearance_max_radius`,
+  81 mm on the H2S): OrcaSlicer refused 80 mm ("too close to others, and collisions may be
+  caused") and took 82 mm. Only the last object may be taller than the rod clearance (33 mm on
+  the H2S), so put tall parts together into ONE object (its parts print together, by layer).
+- Order the objects so the swaps run the cheap way through the flush matrix: dark to light is
+  the expensive direction (black to white 900 mm3, white to black 90 on the H2S defaults).
+  Light parts first, the dark main part last.
+- Separate parts need a fit: a cap or insert with clearance, glued or pressed in. Print a short
+  test piece of the joint first. A part printed face down on a textured plate gets the plate's
+  texture on its visible face.
+- Inlays only a few layers deep near the bottom are the cheap case either way: few swaps, and
+  early swaps need little purge-object height.
+
+A same-layer purge object (printed with the main print, no Z moves between objects) has to take
+each swap's flush in one layer: flush / layer height of solid area (900 mm3 at 0.2 mm is a 67 x
+67 mm solid layer). `swaps.py` prints that area per swap. When the swaps cluster in a few bands
+the object must still be built up to those heights, so it costs more plastic than the chute;
+it only pays when swaps are spread over most layers. The slicer's own prime tower does not do
+it on the H2S (see "Slicing with OrcaSlicer").
 
 ## Sizing the purge object (`fit.py`, `--purge-scale`)
 
