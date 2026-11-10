@@ -131,6 +131,10 @@ it reads 255 during heating and leveling.
   bed must never stand more than 3 mm above the main print at a change, so use `--lead 2`:
   the last change then stops the purge object at main + 2 mm and a catch-up visit finishes it.
   With the default lead 25 the back move runs into the purge object (check.py catches it).
+  The second back move sits inside `M622 J1` after `M1002 judge_flag powerloss_resume_flag`,
+  so it runs only when the printer resumes after a power loss; check.py counts it anyway.
+- Better placement on the H2S: put the purge object behind AND to the side of the main print
+  (no X overlap), so the back move, which runs at the nozzle's current X, never crosses it.
 - The start load line re-zeros Z with `G28.14` at Z 5, so the G-code model reads the line as
   5.8 mm tall; it is about 0.8 mm. check.py leaves the start line to the keep-out and the
   footprint check.
