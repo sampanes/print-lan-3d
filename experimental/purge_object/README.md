@@ -206,3 +206,9 @@ so with Orca build the two projects yourself and slice them with the same settin
 Flattened profile JSONs (inherits and includes resolved, prime tower off, flush matrix all 0)
 come from the BBL profiles in Orca's GitHub repo; the installed Orca keeps its bundled ones in
 an unreadable `.opc` archive. Orca writes `L0` as the flush length for a zero-flush change.
+
+The slicer's own "flush into this object" and the prime tower do NOT take the flush on the H2S
+(OrcaSlicer 2.5, tested): with the prime tower on (Type 1 or Type 2) and a box marked "flush
+into this object", every change still flushes its full matrix volume down the chute in firmware
+(`M620.10 ... L<full length>`), and the tower and box are printed on top of that. Only a slice
+with the flush matrix at 0, spliced, keeps the flush out of the chute.
