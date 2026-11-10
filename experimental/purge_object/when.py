@@ -7,6 +7,7 @@ the start G-code (first layer), not from pressing print.
 Usage: python when.py MAIN.gcode PURGE.gcode OUT.gcode.plan.json
 """
 import json, re, sys
+import gcmodel as gc
 
 if len(sys.argv) != 4:
     sys.exit(__doc__)
@@ -33,7 +34,7 @@ for i, ln in enumerate(P):
     m = re.match(r"; layer num/total_layer_count: (\d+)/", ln)
     if m:
         pli[int(m[1])] = i
-pend = next(i for i, ln in enumerate(P) if ln.startswith("; MACHINE_END_GCODE_START"))
+pend = gc.end_index(P)
 
 extra = 0
 for v in plan["visits"]:

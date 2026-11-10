@@ -122,6 +122,11 @@ for i, ln in enumerate(L):
         fails.append(f"line {i+1}: Z {max(z0, z1)} over {Z_MAX}")
     if owner != "startup" or i > 0:
         for k, b in boxes.items():
+            # the start line is a flat line on the bed edge, covered by the keep-out and the
+            # footprint check above; its tracked height is not real on the H2S (the load line
+            # re-zeros Z with G28.14 at Z5, so the model reads 5.8 for a line ~0.8 mm high)
+            if k == "startup":
+                continue
             if h[k] > 0 and h[k] > zt + 0.05:
                 d = seg_box_dist(x0, y0, x1, y1, b)
                 if d < worst_head.get(k, (1e9,))[0]:

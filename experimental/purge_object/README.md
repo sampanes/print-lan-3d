@@ -125,3 +125,23 @@ it reads 255 during heating and leveling.
 - To find out on the first H2S run: whether firmware honours flush_length 0 (it may enforce a
   minimum), and whether the slice's start/end G-code matches what these notes expect (read
   the sliced main G-code's change block before printing).
+- Every H2S filament change moves the nozzle to Y 295 and back to Y 265 at its current X, at
+  layer z + 3: once inside the change block (raised by hidden_change_moves) and again in the
+  power-loss-resume block right after `M621` (not raised). A purge object at the back of the
+  bed must never stand more than 3 mm above the main print at a change, so use `--lead 2`:
+  the last change then stops the purge object at main + 2 mm and a catch-up visit finishes it.
+  With the default lead 25 the back move runs into the purge object (check.py catches it).
+- The start load line re-zeros Z with `G28.14` at Z 5, so the G-code model reads the line as
+  5.8 mm tall; it is about 0.8 mm. check.py leaves the start line to the keep-out and the
+  footprint check.
+
+## Slicing with OrcaSlicer instead of Bambu Studio
+
+The splice, check, when and pack steps also take OrcaSlicer 2.5 output (H2S profiles). Orca
+has no `; MACHINE_END_GCODE_START`; `gcmodel.end_index` finds its end block at the first
+`; filament end gcode` after the last layer. run.py and make3mf.py still drive Bambu Studio,
+so with Orca build the two projects yourself and slice them with the same settings:
+`orca-slicer.exe --load-settings "machine.json;process.json" --load-filaments "f1.json;f2.json;f3.json" --slice 0 --outputdir DIR --export-3mf X.gcode.3mf IN.3mf`.
+Flattened profile JSONs (inherits and includes resolved, prime tower off, flush matrix all 0)
+come from the BBL profiles in Orca's GitHub repo; the installed Orca keeps its bundled ones in
+an unreadable `.opc` archive. Orca writes `L0` as the flush length for a zero-flush change.

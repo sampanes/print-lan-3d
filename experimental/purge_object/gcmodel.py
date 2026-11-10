@@ -107,6 +107,20 @@ def layer_z(lines):
     return out
 
 
+def end_index(lines):
+    """Line index where the end G-code starts. Bambu Studio marks it
+    '; MACHINE_END_GCODE_START'; OrcaSlicer has no such marker, its end block starts at the
+    first '; filament end gcode' after the last layer comment."""
+    for i, ln in enumerate(lines):
+        if ln.startswith("; MACHINE_END_GCODE_START"):
+            return i
+    last = max(layer_index(lines).values())
+    for i in range(last, len(lines)):
+        if lines[i].startswith("; filament end gcode"):
+            return i
+    raise SystemExit("[X] no end G-code marker (; MACHINE_END_GCODE_START or ; filament end gcode)")
+
+
 def primed_ref(lines, layer1):
     """Index of the first extrusion of layer 1: the retraction-depth zero point."""
     for i in range(layer1, len(lines)):

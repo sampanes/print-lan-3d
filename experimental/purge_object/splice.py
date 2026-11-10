@@ -50,7 +50,8 @@ mli, pli = gc.layer_index(M), gc.layer_index(P)
 mz, pz = gc.layer_z(M), gc.layer_z(P)
 m_ref = mst[gc.primed_ref(M, mli[1])].depth
 p_ref = pst[gc.primed_ref(P, pli[1])].depth
-P_END = next(i for i, l in enumerate(P) if l.startswith("; MACHINE_END_GCODE_START"))
+P_END = gc.end_index(P)
+M_END = gc.end_index(M)
 NP = max(pli)
 
 # filament changes in the main print (skip the start-of-print load, before layer 1)
@@ -235,6 +236,9 @@ for v in sorted(visits, key=lambda v: v["anchor"]):
     purge_h = top
     log.append(dict(v, main_z=mz[v["main_layer"]], purge_z0=pz[v["l0"]], purge_z1=pz[v["l1"]],
                     volume_mm3=round(vol_mm3)))
+if pos > M_END:
+    sys.exit("[X] a purge visit lands inside the main print's end G-code")
+end_out = len(out) + (M_END - pos)       # where the end G-code starts in the spliced file
 out += M[pos:]
 
 # probe the purge object's footprint too (P1S: "G29 A X.. Y.. I.. J..", H2S: "G29 A1 O X..")
@@ -262,7 +266,7 @@ if MACH.get("hidden_change_moves"):
         t = TOOL.match(l)
         if t and int(t[2]) < 255:
             inside = t[1] == "0"
-        if l.startswith("; MACHINE_END_GCODE_START"):
+        if i >= end_out:
             inside = True
         c = gc.cmd(l)
         if c in ("G90", "G91"):
