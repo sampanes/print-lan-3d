@@ -41,6 +41,15 @@ python -m unittest discover -s tests & rem offline tests, no printer needed
   running job. Firmware 01.09 refuses it unsigned (err 84033543), like a print start: then
   label the tray on the printer's screen.
 
+## Tools for getting a model ready
+
+- `tools/jt2stl/`: JT 10.x tessellation to STL, for parts that only exist as
+  JT. Offline, numpy only. GPL-2.0-or-later (a port of Open Cascade's TKJT reader).
+- `tools/pinsplit/`: rebuild a messy CAD mesh as a solid and cut it into pieces that join
+  with printed dowel pins, from a small JSON config of cut regions and joints.
+
+Each has its own README.
+
 ## How it works
 
 - Control: MQTT over TLS on 8883 (user `bblp`, password = the printer's LAN access code).
