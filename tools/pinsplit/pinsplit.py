@@ -251,8 +251,15 @@ def build_piece(name, body, cfg, joints, h):
         except ImportError:
             print('decimate: fast_simplification not installed, keeping full resolution')
         else:
-            v, fc = fast_simplification.simplify(mesh.vertices, mesh.faces, target_reduction=1 - keep)
-            mesh = cleanup(trimesh.Trimesh(v, fc, process=True))
+            # decimation can occasionally pinch an edge; try nearby targets, else keep full res
+            for k in (keep, keep * 1.1, keep * 1.25, keep * 1.5):
+                if k >= 1:
+                    break
+                v, fc = fast_simplification.simplify(mesh.vertices, mesh.faces, target_reduction=1 - k)
+                dm = cleanup(trimesh.Trimesh(v, fc, process=True))
+                if dm.is_watertight and len(dm.split(only_watertight=False)) == 1:
+                    return dm
+            print('decimate: %s stays at full resolution (decimated mesh was not watertight)' % name)
     return mesh
 
 
