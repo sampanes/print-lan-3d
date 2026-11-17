@@ -21,9 +21,9 @@ Config (JSON; lengths in output millimeters):
   },
   "joints": [                        # dowels across a cut plane between two pieces
     {"axis": "x", "at": 0, "pieces": ["body-l", "body-r"], "d": 4, "depth": 6,
-     "count": 4, "min_spacing": 30, "wall": 1.5}
+     "count": 4, "min_spacing": 30, "wall": 1.5, "clearance": 0.10}   # per-joint override
   ],
-  "clearance": 0.15,                 # radial: hole = pin + clearance all round
+  "clearance": 0.15,                 # radial, default for every joint: hole = pin + clearance all round
   "pin_gap": 0.6                     # pin length = 2 * depth - pin_gap
 }
 A half-space is [axis, "<" or ">", value]. "and"/"or" take lists, "not" takes a region or a
@@ -231,12 +231,11 @@ def build_piece(name, body, cfg, joints, h):
     g = axes(plo, h, shape)
     P = dict(zip('xyz', np.meshgrid(*g, indexing='ij', sparse=True)))
     f = np.minimum(f, region_field(pieces[name], P, pieces).astype(np.float32))
-    clr = cfg.get('clearance', 0.15)
     for j in joints:
         if name not in j['pieces']:
             continue
         for c in j['pins']:
-            f = np.minimum(f, hole_field(P, j['axis'], j['at'], c, j['d'] / 2 + clr,
+            f = np.minimum(f, hole_field(P, j['axis'], j['at'], c, j['d'] / 2 + j.get('clearance', cfg.get('clearance', 0.15)),
                                          j['depth']).astype(np.float32))
     f[f == 0] = -1e-6
     f = np.pad(f, 1, constant_values=-1.0)
@@ -300,6 +299,7 @@ def main():
     body = Body(V, F, cfg.get('coarse', 1.0))
     joints = []
     for j in cfg.get('joints', []):
+        j = dict(j, clearance=j.get('clearance', cfg.get('clearance', 0.15)))
         pts, rmax = place_pins(body, j, cfg['pieces'], h)
         j = dict(j, pins=pts)
         joints.append(j)

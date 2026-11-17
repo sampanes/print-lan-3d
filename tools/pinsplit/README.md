@@ -29,7 +29,8 @@ docstring of `pinsplit.py`. Needs numpy, scipy, trimesh, scikit-image and libigl
 
 ## Tips
 - Dowels print standing on end. Hole clearance 0.15 mm all round is a starting point:
-  print a fit coupon on the target printer first.
+  print a fit coupon on the target printer first. A joint's own `clearance` overrides the
+  default (on one PLA printer a d3 dowel wanted 0.15 and a d4 dowel 0.10).
 - Pick cut planes where the model is thick (for a plane: a body split down its symmetry
   plane prints flat on the cut face). A wing joined edge-on is usually too thin for more
   than one pin; a horizontal cut under a whole wing gives room for several.
